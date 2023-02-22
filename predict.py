@@ -26,7 +26,7 @@ args = parser.parse_args()
 
 # all images are available here.
 all_images = os.listdir(args.path)
-
+print(len(all_images))
 # Do your magic here....
 # e.g. loading pre-processing functions, dataloaders, helper_functions & models
 
