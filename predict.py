@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import argparse
+from src.baseline_pred import max_predict
 
 parser = argparse.ArgumentParser(
     prog="predict.py", description="Prediction python module for Hackathon"
@@ -25,11 +26,13 @@ parser.add_argument(
 args = parser.parse_args()
 
 # all images are available here.
-all_images = os.listdir(args.path)
-print(len(all_images))
+# all_images = os.listdir(args.path)
+# print(len(all_images))
+
 # Do your magic here....
 # e.g. loading pre-processing functions, dataloaders, helper_functions & models
 
+df = max_predict(args.metadata)
 # Get predictions at ref_id level.
 
 # Create dataframe with the below specified template/ the sample submission file format mentioned on the Platform.
@@ -45,7 +48,7 @@ print(len(all_images))
 # DON'T CHANGE THE BELOW FILE NAME, ELSE, INFERENCE PROCESS FAILS.
 # ----------------------------------------------------------------
 # save the dataframe as ===== 'predictions.csv' =====
-# df.to_csv("predictions.csv", index=False)
+df.to_csv("predictions.csv", index=False)
 
 # Exit.
 
