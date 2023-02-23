@@ -1,3 +1,9 @@
+import concurrent.futures as cfu
+import os
+import random
+import shutil
+
+import numpy as np
 import pandas as pd
 
 
@@ -36,3 +42,37 @@ def get_label_map():
             "IndustryPartner.com": 7,
         },
     }
+
+
+def sample_images(
+    grp_src_df: pd.DataFrame,
+    src_path: str,
+    dest_path: str,
+    sample_count: int,
+    max_image_count: int = 15,
+    wait_to_complete: bool = True,
+):
+    """Give random sameples from the input data groupped by reference id
+
+    Args:
+        grp_src_df (pd.DataFrame): _description_
+        src_path (str): _description_
+        dest_path (str): _description_
+        sample_count (int): _description_
+        max_image_count (int, optional): _description_. Defaults to 15. Set -1 to select all images.
+        wait_to_complete (bool, optional): wait till the copy threads complete execution
+    """
+    copy_lst = {}
+    with cfu.ThreadPoolExecutor() as executor:
+        for img_lst in grp_src_df["image_name"].sample(sample_count):
+            if max_image_count > 0:
+                img_lst = random.choices(img_lst, k=max_image_count)
+            for imgf in img_lst:
+                src_file = os.path.join(src_path, imgf)
+                copy_thr = executor.submit(shutil.copy, src=src_file, dst=dest_path)
+                copy_lst[copy_thr] = dest_path
+        if wait_to_complete:
+            print("Waiting to complete copying....")
+            for copy_thr in cfu.as_completed(copy_lst):
+                copy_thr.result()
+            print("Completed copying....")

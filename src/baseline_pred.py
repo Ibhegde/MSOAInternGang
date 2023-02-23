@@ -1,6 +1,5 @@
 import pandas as pd
-import json
-from .analysis import aggergate_data, get_label_map
+from .util import get_label_map
 
 
 def max_predict(metadata_file: str):
