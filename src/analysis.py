@@ -11,7 +11,7 @@ def aggergate_data(meta_path: str):
 
     stat_df = src_df.groupby("ref_id").agg(
         {
-            "image_name": len,
+            "image_name": list,
             "POA_attribution": np.random.choice,
             "activity_category": np.random.choice,
             "activity_type": np.random.choice,
@@ -67,7 +67,7 @@ def main():
 
     args = parser.parse_args()
 
-    aggergate_data(args.metadata)
+    print(aggergate_data(args.metadata))
 
 
 if __name__ == "__main__":
