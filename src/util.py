@@ -23,15 +23,15 @@ def groupped_image_data(metadata_file: str):
 
 def get_label_map():
     return {
-        "POA_attribution_map": {"No": 0, "Yes": 1},
-        "activity_category_map": {
+        "POA_attribution": {"No": 0, "Yes": 1},
+        "activity_category": {
             "Digital Media": 0,
             "Paid Social Media": 1,
             "Print": 2,
             "Out of Home Media": 3,
             "Out of Home": 4,
         },
-        "activity_type_map": {
+        "activity_type": {
             "NonPartner.com": 0,
             "Member.com": 1,
             "Online Display": 2,
@@ -49,8 +49,8 @@ def sample_images(
     src_path: str,
     dest_path: str,
     sample_count: int,
-    max_image_count: int = 15,
-    wait_to_complete: bool = True,
+    category_col: str = None,
+    max_image_count: int = 20,
 ):
     """Give random sameples from the input data groupped by reference id
 
@@ -64,15 +64,26 @@ def sample_images(
     """
     copy_lst = {}
     with cfu.ThreadPoolExecutor() as executor:
-        for img_lst in grp_src_df["image_name"].sample(sample_count):
-            if max_image_count > 0:
-                img_lst = random.choices(img_lst, k=max_image_count)
+        sample_rows = grp_src_df["image_name"].sample(sample_count)
+        labelled_dest = dest_path
+        os.makedirs(labelled_dest, exist_ok=True)
+
+        for smp_ref, img_lst in sample_rows.items():
+            # Add label to the dest path if label is provided
+            if category_col is not None:
+                cat_label = grp_src_df.loc[smp_ref][category_col]
+                labelled_dest = os.path.join(dest_path, cat_label)
+                os.makedirs(labelled_dest, exist_ok=True)
+
+            if max_image_count > 0 and len(img_lst) > max_image_count:
+                img_lst = random.sample(img_lst, k=max_image_count)
             for imgf in img_lst:
                 src_file = os.path.join(src_path, imgf)
-                copy_thr = executor.submit(shutil.copy, src=src_file, dst=dest_path)
-                copy_lst[copy_thr] = dest_path
-        if wait_to_complete:
-            print("Waiting to complete copying....")
-            for copy_thr in cfu.as_completed(copy_lst):
-                copy_thr.result()
-            print("Completed copying....")
+                copy_thr = executor.submit(shutil.copy, src=src_file, dst=labelled_dest)
+                copy_lst[copy_thr] = (smp_ref, img_lst)
+
+        print("Waiting to complete copying....")
+        for copy_thr in cfu.as_completed(copy_lst):
+            copy_thr.result()
+        print("Completed copying....")
+    return list(copy_lst.values())
