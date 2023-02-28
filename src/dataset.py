@@ -4,6 +4,7 @@ import tensorflow as tf
 import pandas as pd
 import os
 import numpy as np
+from util import get_label_map
 
 
 class AIECVDataSet(Dataset):
@@ -31,4 +32,5 @@ class AIECVDataSet(Dataset):
         ).convert("RGB")
         pixel_vales = self.transform(img_pil, return_tensors="pt")
         labels = self.stat_df.iloc[idx, self.label_col]
+        label_val = get_label_map()[self.label_col][labels]
         return pixel_vales, labels
