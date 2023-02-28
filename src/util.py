@@ -66,6 +66,7 @@ def sample_images(
         wait_to_complete (bool, optional): wait till the copy threads complete execution
     """
     copy_lst = {}
+    grp_src_df = groupped_image_data("data/TRAIN_images_metadata.csv")
     with cfu.ThreadPoolExecutor() as executor:
         sample_rows = grp_src_df["image_name"].sample(sample_count)
         labelled_dest = dest_path
@@ -82,7 +83,8 @@ def sample_images(
                 img_lst = random.sample(img_lst, k=max_image_count)
             for imgf in img_lst:
                 src_file = os.path.join(src_path, imgf)
-                copy_thr = executor.submit(shutil.copy, src=src_file, dst=labelled_dest)
+                dst_file = os.path.join(labelled_dest, imgf)
+                copy_thr = executor.submit(os.symlink, src=src_file, dst=dst_file)
                 copy_lst[copy_thr] = (smp_ref, img_lst)
 
         print("Waiting to complete copying....")

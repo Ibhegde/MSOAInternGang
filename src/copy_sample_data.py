@@ -3,7 +3,7 @@ import os
 import shutil
 import pandas as pd
 from util import groupped_image_data, sample_images, get_label_map
-
+import math
 
 # def copy_train_images(
 #     grp_src_df: str, src_path: str, dest_path: str, sample_count: int
@@ -47,13 +47,14 @@ def copy_sample_images(
         for label_type, label_vals in get_label_map().items():
             label_sample_list = []
             sample_path = os.path.join(*[dest_path, label_type, sample_type])
+            label_count = math.ceil(sample_count/len(label_vals.keys()))
             for label_val in label_vals.keys():
                 labelled_dest = os.path.join(sample_path, label_val)
                 sample_list = sample_images(
                     grp_src_df=grp_src_df.loc[grp_src_df[label_type] == label_val],
                     src_path=src_path,
                     dest_path=labelled_dest,
-                    sample_count=sample_count,
+                    sample_count=label_count,
                     max_image_count=20,
                 )
                 label_sample_list.extend(
@@ -163,7 +164,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=fetch_count,
+        sample_count=200,
         sample_type="validation",
     )
 
@@ -171,7 +172,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=fetch_count,
+        sample_count=100,
         sample_type="test",
     )
 

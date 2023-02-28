@@ -2,3 +2,7 @@ scikit-learn
 transformers
 numpy
 pandas
+torch 
+torchvision 
+torchaudio
+datasets
