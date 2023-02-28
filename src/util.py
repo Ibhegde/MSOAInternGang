@@ -6,6 +6,9 @@ import shutil
 import numpy as np
 import pandas as pd
 
+from torchvision import datasets
+import torch
+
 
 def groupped_image_data(metadata_file: str):
     src_df = pd.read_csv(metadata_file)
@@ -87,3 +90,11 @@ def sample_images(
             copy_thr.result()
         print("Completed copying....")
     return list(copy_lst.values())
+
+
+def get_data_set(root_dir: str, sample_type: str, transform=None):
+    data_dir = os.path.join(root_dir, sample_type)
+    dataset = datasets.ImageFolder(data_dir, transform=transform)
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=32, shuffle=True)
+
+    return dataloader

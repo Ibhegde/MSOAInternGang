@@ -5,33 +5,33 @@ import pandas as pd
 from util import groupped_image_data, sample_images, get_label_map
 
 
-def copy_train_images(
-    grp_src_df: str, src_path: str, dest_path: str, sample_count: int
-):
-    # Uniformy copy
-    label_sample_items = {}
-    for label_type, label_vals in get_label_map().items():
-        label_sample_list = []
-        for label_val in label_vals.keys():
-            labelled_dest = os.path.join(*[dest_path, label_type, "train", label_val])
-            sample_list = sample_images(
-                grp_src_df=grp_src_df.loc[grp_src_df[label_type] == label_val],
-                src_path=src_path,
-                dest_path=labelled_dest,
-                sample_count=sample_count,
-                max_image_count=20,
-            )
-            label_sample_list.extend(
-                [[ref_id, img_lst, label_val] for ref_id, img_lst in sample_list]
-            )
-        # print(label_sample_list)
+# def copy_train_images(
+#     grp_src_df: str, src_path: str, dest_path: str, sample_count: int
+# ):
+#     # Uniformy copy
+#     label_sample_items = {}
+#     for label_type, label_vals in get_label_map().items():
+#         label_sample_list = []
+#         for label_val in label_vals.keys():
+#             labelled_dest = os.path.join(*[dest_path, label_type, "train", label_val])
+#             sample_list = sample_images(
+#                 grp_src_df=grp_src_df.loc[grp_src_df[label_type] == label_val],
+#                 src_path=src_path,
+#                 dest_path=labelled_dest,
+#                 sample_count=sample_count,
+#                 max_image_count=20,
+#             )
+#             label_sample_list.extend(
+#                 [[ref_id, img_lst, label_val] for ref_id, img_lst in sample_list]
+#             )
+#         # print(label_sample_list)
 
-        sample_df = pd.DataFrame.from_records(
-            label_sample_list, columns=["ref_id", "image_names", label_type]
-        )
-        print(sample_df.head())
-        label_sample_items[label_type] = sample_df
-    return label_sample_items
+#         sample_df = pd.DataFrame.from_records(
+#             label_sample_list, columns=["ref_id", "image_names", label_type]
+#         )
+#         print(sample_df.head())
+#         label_sample_items[label_type] = sample_df
+#     return label_sample_items
 
 
 def copy_sample_images(
@@ -41,24 +41,58 @@ def copy_sample_images(
     sample_count: int,
     sample_type: str = "test",
 ):
-    # Rendom copy
-    label_sample_items = {}
-    for label_type in get_label_map().keys():
-        labelled_dest = os.path.join(*[dest_path, label_type, sample_type])
-        sample_list = sample_images(
-            grp_src_df=grp_src_df,
-            src_path=src_path,
-            dest_path=labelled_dest,
-            sample_count=sample_count,
-            category_col=label_type,
-            max_image_count=20,
-        )
-        sample_refs = [ref_id for ref_id, img_lst in sample_list]
-        sample_df = grp_src_df.loc[sample_refs][["image_name", label_type]]
-        sample_df.reset_index()
-        print(sample_df.head())
-        label_sample_items[label_type] = sample_df
-    return label_sample_items
+    if sample_type in ["train", "validation"]:
+        # Uniformy copy
+        label_sample_items = {}
+        for label_type, label_vals in get_label_map().items():
+            label_sample_list = []
+            sample_path = os.path.join(*[dest_path, label_type, sample_type])
+            for label_val in label_vals.keys():
+                labelled_dest = os.path.join(sample_path, label_val)
+                sample_list = sample_images(
+                    grp_src_df=grp_src_df.loc[grp_src_df[label_type] == label_val],
+                    src_path=src_path,
+                    dest_path=labelled_dest,
+                    sample_count=sample_count,
+                    max_image_count=20,
+                )
+                label_sample_list.extend(
+                    [[ref_id, img_lst, label_val] for ref_id, img_lst in sample_list]
+                )
+            # print(label_sample_list)
+
+            sample_df = pd.DataFrame.from_records(
+                label_sample_list, columns=["ref_id", "image_name", label_type]
+            )
+            sample_df = sample_df.explode("image_name")
+
+            sample_rec = os.path.join(sample_path, "record.csv")
+            sample_df.to_csv(sample_rec)
+            label_sample_items[label_type] = sample_df
+        return label_sample_items
+    elif sample_type == "test":
+        # Random copy
+        label_sample_items = {}
+        for label_type in get_label_map().keys():
+            labelled_dest = os.path.join(*[dest_path, label_type, sample_type])
+            sample_list = sample_images(
+                grp_src_df=grp_src_df,
+                src_path=src_path,
+                dest_path=labelled_dest,
+                sample_count=sample_count,
+                category_col=label_type,
+                max_image_count=20,
+            )
+            sample_refs = [ref_id for ref_id, img_lst in sample_list]
+            sample_df = grp_src_df.loc[sample_refs][["image_name", label_type]]
+            sample_df.reset_index()
+
+            sample_df = sample_df.explode("image_name")
+            sample_rec = os.path.join(labelled_dest, "record.csv")
+            sample_df.to_csv(sample_rec)
+
+            label_sample_items[label_type] = sample_df
+        return label_sample_items
 
 
 def main():
@@ -117,11 +151,12 @@ def main():
     #     max_image_count=-1,
     # )
 
-    copy_train_images(
+    copy_sample_images(
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
         sample_count=fetch_count,
+        sample_type="train",
     )
 
     copy_sample_images(
