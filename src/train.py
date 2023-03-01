@@ -80,8 +80,8 @@ class TrainModel:
         self,
         model_name: str,
         label_col: str,
-        image_dir: str = "TRAIN_IMAGES/",
-        output_dir: str = "vit-base-aie",
+        image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
+        output_dir: str = "vit-base-aie-test",
     ) -> None:
         self.device = "cuda"
         if not torch.cuda.is_available():
@@ -108,6 +108,7 @@ class TrainModel:
 
         if image_dir is not None:
             self.output_dir = os.path.join(output_dir, self.label_col)
+            print("data dir %s"%(os.path.join(image_dir, self.label_col)))
             dataset = load_dataset(
                 "imagefolder",
                 data_dir=os.path.join(image_dir, self.label_col),
@@ -115,6 +116,8 @@ class TrainModel:
             )
             self.prep_ds = dataset.with_transform(self.transform_image)
 
+            print("Train set: %d rows"%(self.prep_ds["train"].num_rows))
+            print("Validation set: %d rows"%(self.prep_ds["validation"].num_rows))
             self.training_args = TrainingArguments(
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
@@ -145,7 +148,7 @@ class TrainModel:
 
 def train_model(model_name, label_col):
     tm = TrainModel(
-        model_name=model_name, label_col=label_col, output_dir="test-vit-base"
+        model_name=model_name, label_col=label_col, output_dir="vit-base-aie-test"
     )
     trm = tm.train()
     tstm = tm.test()
@@ -158,10 +161,11 @@ def main():
 
     trainers = {}
     with cfu.ThreadPoolExecutor() as executor:
-        for label in get_label_map():
+        for label in list(get_label_map().keys()):
             label_col = label
             tr_exe = executor.submit(train_model, model_name, label_col)
             trainers[tr_exe] = label_col
+            break
     for tr_exe in cfu.as_completed(trainers):
         print(tr_exe.result())
 
