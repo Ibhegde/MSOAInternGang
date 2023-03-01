@@ -5,9 +5,8 @@ import shutil
 
 import numpy as np
 import pandas as pd
-
-from torchvision import datasets
 import torch
+from torchvision import datasets
 
 
 def groupped_image_data(metadata_file: str):
