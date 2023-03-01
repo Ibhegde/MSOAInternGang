@@ -148,7 +148,7 @@ class TrainModel:
 
 def train_model(model_name, label_col):
     tm = TrainModel(
-        model_name=model_name, label_col=label_col, output_dir="vit-base-aie-test"
+        model_name=model_name, label_col=label_col, output_dir="vit-base-aie-15k"
     )
     trm = tm.train()
     tstm = tm.test()
@@ -165,10 +165,10 @@ def main():
             label_col = label
             tr_exe = executor.submit(train_model, model_name, label_col)
             trainers[tr_exe] = label_col
-            break
     for tr_exe in cfu.as_completed(trainers):
+        print(trainers[tr_exe])
         print(tr_exe.result())
-
+        print('')
 
 if __name__ == "__main__":
     main()
