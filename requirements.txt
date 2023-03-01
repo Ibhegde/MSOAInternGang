@@ -2,7 +2,7 @@ scikit-learn
 transformers
 numpy
 pandas
-torch 
-torchvision 
-torchaudio
+torch==1.12.1+cu113
+torchvision==0.13.1+cu113
 datasets
+tensorboard

@@ -1,8 +1,8 @@
+import concurrent.futures as cfu
 import os
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 import torch
 from datasets import load_dataset
 from PIL import Image
@@ -15,7 +15,7 @@ from transformers import (
     ViTImageProcessor,
 )
 
-from src.util import get_label_map
+from util import get_label_map
 
 
 class TrainModel:
@@ -26,6 +26,9 @@ class TrainModel:
         return {"f1": float(f1_score(y_true=labels, y_pred=predictions))}
 
     def collate_fn(self, batch):
+        device = "cuda"
+        if not torch.cuda.is_available():
+            device = "cpu"
         return {
             "pixel_values": torch.stack([x["pixel_values"] for x in batch]),
             "labels": torch.tensor([x["labels"] for x in batch]),
@@ -39,6 +42,8 @@ class TrainModel:
         return inputs
 
     def train(self):
+        if next(self.model.parameters()).is_cuda:
+            print("Running on GPU!!")
         train_results = self.trainer.train()
         self.trainer.save_model()
         self.trainer.log_metrics("train", train_results.metrics)
@@ -59,6 +64,9 @@ class TrainModel:
         image_dir: str = "TRAIN_IMAGES/",
         output_dir: str = "vit-base-aie",
     ) -> None:
+        device = "cuda"
+        if not torch.cuda.is_available():
+            device = "cpu"
         self.model_name = model_name
         self.feature_ext = ViTImageProcessor.from_pretrained(
             self.model_name, proxies={"https": "proxy-ir.intel.com:912"}
@@ -83,18 +91,18 @@ class TrainModel:
             id2label={v: k for k, v in self.labels_lst.items()},
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
-        )
+        ).to(device)
 
         self.training_args = TrainingArguments(
             output_dir=self.output_dir,
-            per_device_train_batch_size=16,
+            per_device_train_batch_size=32,
             evaluation_strategy="steps",
             num_train_epochs=10,
             fp16=True,
             save_steps=100,
             eval_steps=100,
             logging_steps=10,
-            learning_rate=1e-6,
+            learning_rate=2e-4,
             save_total_limit=2,
             remove_unused_columns=False,
             push_to_hub=False,
@@ -109,22 +117,27 @@ class TrainModel:
             compute_metrics=self.compute_metrics,
             train_dataset=self.prep_ds["train"],
             eval_dataset=self.prep_ds["validation"],
-            tokenizer=self.feature_extractor,
+            tokenizer=self.feature_ext,
         )
 
+def train_model(model_name, label_col):
+    tm = TrainModel(model_name=model_name, label_col=label_col, output_dir="test-vit-base")
+    trm = tm.train()
+    tstm = tm.test()
+    return (trm, tsm)
 
 def main():
     # TODO: take arguments in commandline#
     model_name = "google/vit-base-patch16-224-in21k"
 
-    # for label in get_label_map():
-    #     label_col = label
-
-    label_col = "POA_attribution"
-
-    tm = TrainModel(model=model_name, label_col=label_col, output_dir="test-vit-base")
-    tm.train()
-    tm.test()
+    trainers = {}
+    with cfu.ThreadPoolExecutor() as executor:
+        for label in get_label_map():
+            label_col = label
+            tr_exe = executor.submit(train_model, model_name, label_col)
+            trainers[tr_exe] = label_col
+    for tr_exe in cfu.as_completed(trainers):
+        print(tr_exe.result())
 
 
 if __name__ == "__main__":
