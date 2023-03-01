@@ -159,16 +159,29 @@ def main():
     # TODO: take arguments in commandline#
     model_name = "google/vit-base-patch16-224-in21k"
 
-    trainers = {}
-    with cfu.ThreadPoolExecutor() as executor:
-        for label in list(get_label_map().keys()):
-            label_col = label
-            tr_exe = executor.submit(train_model, model_name, label_col)
-            trainers[tr_exe] = label_col
-    for tr_exe in cfu.as_completed(trainers):
-        print(trainers[tr_exe])
-        print(tr_exe.result())
+#     trainers = {}
+#     with cfu.ThreadPoolExecutor() as executor:
+#         for label in list(get_label_map().keys()):
+#             label_col = label
+#             tr_exe = executor.submit(train_model, model_name, label_col)
+#             trainers[tr_exe] = label_col
+#     for tr_exe in cfu.as_completed(trainers):
+#         print(trainers[tr_exe])
+#         print(tr_exe.result())
+#         print('')
+    
+    results = {}
+    for label in list(get_label_map().keys()):
+        label_col = label
+        trm, tstm = train_model(model_name, label_col)
+        results[label_col] = (trm, tstm)
+    for label in results:
+        trm, tstm = results[label]
+        print("Label type: %s"%label)
+        print(trm)
+        print(tstm)
         print('')
+        
 
 if __name__ == "__main__":
     main()
