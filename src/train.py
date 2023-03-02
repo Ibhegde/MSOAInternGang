@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 import datasets
 from datasets import load_dataset
-from PIL import Image
+from PIL import Image, ImageFile
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
@@ -97,6 +97,7 @@ class TrainModel:
 
         # To allow loading large images
         Image.MAX_IMAGE_PIXELS = None
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
 
         self.model = ViTForImageClassification.from_pretrained(
             self.model_name,
@@ -105,6 +106,10 @@ class TrainModel:
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
         ).to(self.device)
+        
+        # freeze params of pretrained model
+        for param in self.model.vit.parameters():
+            param.requires_grad = False
 
         if image_dir is not None:
             self.output_dir = os.path.join(output_dir, self.label_col)
@@ -122,7 +127,7 @@ class TrainModel:
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
-                num_train_epochs=10,
+                num_train_epochs=2,
                 fp16=True,
                 save_steps=100,
                 eval_steps=100,
@@ -157,7 +162,7 @@ def train_model(model_name, label_col):
 
 def main():
     # TODO: take arguments in commandline#
-    model_name = "google/vit-base-patch16-224-in21k"
+    model_name = "vit-base-aie-15k/POA_attribution/checkpoint-3800"
 
 #     trainers = {}
 #     with cfu.ThreadPoolExecutor() as executor:
@@ -171,8 +176,9 @@ def main():
 #         print('')
     
     results = {}
-    for label in list(get_label_map().keys()):
+    for label in list(get_label_map().keys())[:1]:
         label_col = label
+        print("************************ label_col: %s *****************************"%label_col)
         trm, tstm = train_model(model_name, label_col)
         results[label_col] = (trm, tstm)
     for label in results:
@@ -185,3 +191,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+# Argparse
+# model path
+# data path
+# ouyput dir
