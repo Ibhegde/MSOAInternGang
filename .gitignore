@@ -132,3 +132,9 @@ dmypy.json
 #  Dataset
 TRAIN_IMAGES.zip
 TRAIN_IMAGES/
+
+vit-base-AIE-sample/
+core.*
+test-vit-base/
+vit-base-aie*/
+
