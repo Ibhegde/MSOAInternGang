@@ -1,16 +1,14 @@
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, SequentialSampler
 from PIL import Image
-import tensorflow as tf
-import pandas as pd
 import os
 import numpy as np
-from util import get_label_map
+import torch
 
 
 class AIECVDataSet(Dataset):
     """AIE CV dataset."""
 
-    def __init__(self, csv_file, root_dir, label_col, transform):
+    def __init__(self, stat_df, root_dir, transform=None, label_col=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
@@ -18,7 +16,7 @@ class AIECVDataSet(Dataset):
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
-        self.stat_df = pd.read_csv(csv_file)
+        self.stat_df = stat_df
         self.root_dir = root_dir
         self.transform = transform
         self.label_col = label_col
@@ -28,9 +26,20 @@ class AIECVDataSet(Dataset):
 
     def __getitem__(self, idx):
         img_pil = Image.open(
-            os.path.join(self.root_dir, self.stat_df.iloc[idx, "image_name"])
+            os.path.join(self.root_dir, self.stat_df.iloc[idx, 0])
         ).convert("RGB")
-        pixel_vales = self.transform(img_pil, return_tensors="pt")
-        labels = self.stat_df.iloc[idx, self.label_col]
-        label_val = get_label_map()[self.label_col][labels]
-        return pixel_vales, labels
+        pixel_vales = self.transform(img_pil)
+        if self.label_col:
+            labels = self.stat_df.iloc[idx, self.label_col]
+            return pixel_vales, labels
+
+        return pixel_vales
+
+    def collate_fn_ul(self, sample_batch):
+        return torch.stack([x for x in sample_batch])
+
+    def get_unlabelled_data(self):
+        sampler = SequentialSampler(self)
+        return DataLoader(
+            self, batch_size=32, collate_fn=self.collate_fn_ul, sampler=sampler
+        )
