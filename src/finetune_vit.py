@@ -6,7 +6,7 @@ import pandas as pd
 import torch
 import datasets
 from datasets import load_dataset
-from PIL import Image
+from PIL import Image, ImageFile
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, Dataset
 from transformers import (
