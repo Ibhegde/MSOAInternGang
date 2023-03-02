@@ -1,8 +1,7 @@
 scikit-learn
-transformers
+transformers==4.26.1
 numpy
 pandas
--i https://download.pytorch.org/whl/cu113
 torch==1.12.1+cu113
 torchvision==0.13.1+cu113
 datasets

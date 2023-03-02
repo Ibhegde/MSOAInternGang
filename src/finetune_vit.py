@@ -83,7 +83,7 @@ class TrainModel:
         final_pred = []
 
         for batch_input in pred_dataloader:
-            batch_input.to(self.device)
+            batch_input = batch_input.to(self.device)
             outputs = self.model(batch_input)
             logits = outputs.logits
             if self.device == "cuda":
@@ -97,7 +97,7 @@ class TrainModel:
         image = Image.open(img_path).convert("RGB")
         inputs = self.preprocess_val(image)
         # print(inputs)
-        inputs.to(self.device)
+        inputs = inputs.to(self.device)
 
         outputs = self.model(torch.stack([inputs]))
         logits = outputs.logits

@@ -113,7 +113,7 @@ def main():
     parser.add_argument(
         "--dest-path",
         action="store",
-        default="TRAIN_IMAGES/",
+        default="TRAIN_IMAGES",
         type=str,
         help="TRAIN data destination folder path",
     )
@@ -164,7 +164,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=50,
+        sample_count=100,
         sample_type="validation",
     )
 
@@ -172,7 +172,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=50,
+        sample_count=100,
         sample_type="test",
     )
 

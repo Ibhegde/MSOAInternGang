@@ -37,7 +37,7 @@ args = parser.parse_args()
 
 pred_df = pd.read_csv(args.metadata)
 # pred_df = pred_df.loc[pred_df["ref_id"] == "00113332-001"]
-pred_df = pred_df.loc[:5]
+pred_df = pred_df.loc[:3]
 
 print(len(pred_df))
 label_types = get_label_map()
