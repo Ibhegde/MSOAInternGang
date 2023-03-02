@@ -164,7 +164,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=1000,
+        sample_count=50,
         sample_type="validation",
     )
 
@@ -172,7 +172,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=2000,
+        sample_count=50,
         sample_type="test",
     )
 
