@@ -47,7 +47,7 @@ def copy_sample_images(
         for label_type, label_vals in get_label_map().items():
             label_sample_list = []
             sample_path = os.path.join(*[dest_path, label_type, sample_type])
-            label_count = math.ceil(sample_count/len(label_vals.keys()))
+            label_count = math.ceil(sample_count / len(label_vals.keys()))
             for label_val in label_vals.keys():
                 labelled_dest = os.path.join(sample_path, label_val)
                 sample_list = sample_images(
@@ -164,7 +164,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=1000,
+        sample_count=50,
         sample_type="validation",
     )
 
@@ -172,7 +172,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=2000,
+        sample_count=50,
         sample_type="test",
     )
 

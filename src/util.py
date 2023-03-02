@@ -83,7 +83,10 @@ def sample_images(
             for imgf in img_lst:
                 src_file = os.path.join(src_path, imgf)
                 dst_file = os.path.join(labelled_dest, imgf)
-                copy_thr = executor.submit(os.symlink, src=src_file, dst=dst_file)
+                if os.name == "nt":
+                    copy_thr = executor.submit(shutil.copy, src=src_file, dst=dst_file)
+                else:
+                    copy_thr = executor.submit(os.symlink, src=src_file, dst=dst_file)
                 copy_lst[copy_thr] = (smp_ref, img_lst)
 
         print("Waiting to complete copying....")
