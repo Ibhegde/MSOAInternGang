@@ -28,6 +28,7 @@ from torchvision.transforms import (
 
 from .util import get_label_map
 from .dataset import AIECVDataSet
+import sys
 
 
 class TrainModel:
@@ -114,6 +115,9 @@ class TrainModel:
         image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
         output_dir: str = "vit-base-aie-test",
     ) -> None:
+        if len(sys.argv) > 2:
+            print("Using GPUs 1 and 2")
+            os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
         self.device = "cuda"
         if not torch.cuda.is_available():
             self.device = "cpu"

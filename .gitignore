@@ -130,7 +130,7 @@ dmypy.json
 .pyre/
 
 #  Dataset
-TRAIN_IMAGES.*
+TRAIN_IMAGES*.*
 TRAIN_IMAGES*/
 
 vit-base-AIE-sample/

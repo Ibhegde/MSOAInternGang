@@ -62,8 +62,8 @@ pred_df = pred_df.groupby("ref_id").agg(
     }
 )
 
-pred_df = pred_df.explode("image_name")
-
+pred_df = pred_df.drop(columns=["image_name"])
+pred_df = pred_df.reset_index()
 # df = max_predict(args.metadata)
 # Get predictions at ref_id level.
 
