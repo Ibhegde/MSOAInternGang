@@ -83,7 +83,7 @@ class TrainModel:
         final_pred = []
 
         for batch_input in pred_dataloader:
-            batch_input.to(self.device)
+            batch_input = batch_input.to(self.device)
             outputs = self.model(batch_input)
             logits = outputs.logits
             if self.device == "cuda":
@@ -185,10 +185,10 @@ class TrainModel:
                 evaluation_strategy="steps",
                 num_train_epochs=10,
                 # fp16=True,
-                save_steps=500,
-                eval_steps=1000,
-                logging_steps=10,
-                learning_rate=1e-6,
+                save_steps=100,
+                eval_steps=100,
+                logging_steps=100,
+                learning_rate=1e-4,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -235,7 +235,7 @@ def main():
     #         print('')
 
     results = {}
-    for label in list(get_label_map().keys()):
+    for label in list(get_label_map().keys())[1:]:
         label_col = label
         trm, tstm = train_model(model_name, label_col)
         results[label_col] = (trm, tstm)
