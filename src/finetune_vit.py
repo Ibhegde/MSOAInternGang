@@ -115,7 +115,7 @@ class TrainModel:
         image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
         output_dir: str = "vit-base-aie-test",
     ) -> None:
-        if len(sys.argv) > 2:
+        if len(sys.argv) == 2:
             print("Using GPUs 1 and 2")
             os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
         self.device = "cuda"
@@ -191,12 +191,12 @@ class TrainModel:
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
-                num_train_epochs=2,
+                num_train_epochs=10,
                 fp16=True,
                 save_steps=100,
                 eval_steps=100,
                 logging_steps=10,
-                learning_rate=1e-6,
+                learning_rate=1e-8,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -219,8 +219,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="vit-base-aie-15k",
-        image_dir="TRAIN_IMAGES/",
+        output_dir="vit-base-aie-3k",
+        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_3k/",
     )
     trm = tm.train()
     tstm = tm.test()
@@ -229,7 +229,7 @@ def train_model(model_name, label_col):
 
 def main():
     # TODO: take arguments in commandline#
-    model_name = "vit-base-aie-15k/POA_attribution/checkpoint-3800"
+    model_name = "google/vit-base-patch16-224-in21k"
 
     #     trainers = {}
     #     with cfu.ThreadPoolExecutor() as executor:
@@ -243,7 +243,7 @@ def main():
     #         print('')
 
     results = {}
-    for label in list(get_label_map().keys())[1:]:
+    for label in list(get_label_map().keys()):
         label_col = label
         print(
             "************************ label_col: %s *****************************"
