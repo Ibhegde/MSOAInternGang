@@ -70,7 +70,7 @@ def copy_sample_images(
             sample_rec = os.path.join(sample_path, "record.csv")
             sample_df["file_name"] = sample_df["image_name"]
             sample_df["label"] = sample_df[label_type]
-            sample_df[["image", "label"]].to_csv(sample_rec, index=False)
+            sample_df[["file_name", "label"]].to_csv(sample_rec, index=False)
             label_sample_items[label_type] = sample_df
         return label_sample_items
     elif sample_type == "test":
@@ -94,7 +94,7 @@ def copy_sample_images(
             sample_rec = os.path.join(labelled_dest, "record.csv")
             sample_df["file_name"] = sample_df["image_name"]
             sample_df["label"] = sample_df[label_type]
-            sample_df[["image", "label"]].to_csv(sample_rec, index=False)
+            sample_df[["file_name", "label"]].to_csv(sample_rec, index=False)
 
             label_sample_items[label_type] = sample_df
         return label_sample_items
@@ -168,7 +168,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=10,
+        sample_count=max(int(fetch_count * 0.05), 10),
         sample_type="validation",
     )
 
@@ -176,7 +176,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-        sample_count=10,
+        sample_count=max(int(fetch_count * 0.1), 10),
         sample_type="test",
     )
 
