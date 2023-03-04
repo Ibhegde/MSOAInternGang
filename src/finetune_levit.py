@@ -13,7 +13,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
     LevitFeatureExtractor,
-    LevitForImageClassificationWithTeacher,
+    LevitForImageClassification,
 )
 
 from torchvision.transforms import (
@@ -41,7 +41,7 @@ class ProcessImage:
             model_name, proxies={"https": "proxy-ir.intel.com:912"}
         )
 
-        self.size = self.feature_ext.size["height"]
+        self.size = self.feature_ext.crop_size["height"]
         self.normalise = Normalize(
             mean=self.feature_ext.image_mean, std=self.feature_ext.image_std
         )
@@ -149,12 +149,13 @@ class TrainModel:
         self.label_col = label_col
         self.labels_lst = get_label_map()[self.label_col]
 
-        self.model = LevitForImageClassificationWithTeacher.from_pretrained(
+        self.model = LevitForImageClassification.from_pretrained(
             self.model_name,
             num_labels=len(self.labels_lst),
             id2label={v: k for k, v in self.labels_lst.items()},
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
+            ignore_mismatched_sizes=True,
         ).to(self.device)
 
         # freeze params of pretrained model
@@ -181,8 +182,8 @@ class TrainModel:
                 evaluation_strategy="steps",
                 num_train_epochs=10,
                 fp16=True,
-                save_steps=100,
-                eval_steps=100,
+                save_steps=200,
+                eval_steps=200,
                 logging_steps=10,
                 learning_rate=1e-3,
                 save_total_limit=2,
