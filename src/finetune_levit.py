@@ -12,8 +12,8 @@ from torch.utils.data import DataLoader, Dataset
 from transformers import (
     Trainer,
     TrainingArguments,
-    ViTForImageClassification,
-    ViTImageProcessor,
+    LevitFeatureExtractor,
+    LevitForImageClassificationWithTeacher,
 )
 
 from torchvision.transforms import (
@@ -28,7 +28,6 @@ from torchvision.transforms import (
 
 from .util import get_label_map
 from .dataset import AIECVDataSet
-import sys
 
 
 class TrainModel:
@@ -115,16 +114,13 @@ class TrainModel:
         image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
         output_dir: str = "vit-base-aie-test",
     ) -> None:
-        if len(sys.argv) > 2:
-            print("Using GPUs 1 and 2")
-            os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
         self.device = "cuda"
         if not torch.cuda.is_available():
             self.device = "cpu"
 
         self.model_name = model_name
 
-        self.feature_ext = ViTImageProcessor.from_pretrained(
+        self.feature_ext = LevitFeatureExtractor.from_pretrained(
             self.model_name, proxies={"https": "proxy-ir.intel.com:912"}
         )
 
@@ -157,7 +153,7 @@ class TrainModel:
         Image.MAX_IMAGE_PIXELS = None
         ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-        self.model = ViTForImageClassification.from_pretrained(
+        self.model = LevitForImageClassificationWithTeacher.from_pretrained(
             self.model_name,
             num_labels=len(self.labels_lst),
             id2label={v: k for k, v in self.labels_lst.items()},
@@ -166,11 +162,7 @@ class TrainModel:
         ).to(self.device)
 
         # freeze params of pretrained model
-        for param in self.model.vit.parameters():
-            param.requires_grad = False
-
-        # freeze params of pretrained model
-        for param in self.model.vit.parameters():
+        for param in self.model.levit.parameters():
             param.requires_grad = False
 
         if image_dir is not None and output_dir is not None:
@@ -191,8 +183,8 @@ class TrainModel:
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
-                num_train_epochs=2,
-                fp16=True,
+                num_train_epochs=10,
+                # fp16=True,
                 save_steps=100,
                 eval_steps=100,
                 logging_steps=10,
@@ -229,7 +221,7 @@ def train_model(model_name, label_col):
 
 def main():
     # TODO: take arguments in commandline#
-    model_name = "vit-base-aie-15k/POA_attribution/checkpoint-3800"
+    model_name = "facebook/levit-128"
 
     #     trainers = {}
     #     with cfu.ThreadPoolExecutor() as executor:
@@ -243,12 +235,8 @@ def main():
     #         print('')
 
     results = {}
-    for label in list(get_label_map().keys())[:1]:
+    for label in list(get_label_map().keys()):
         label_col = label
-        print(
-            "************************ label_col: %s *****************************"
-            % label_col
-        )
         trm, tstm = train_model(model_name, label_col)
         results[label_col] = (trm, tstm)
     for label in results:
@@ -261,7 +249,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-# Argparse
-# model path
-# data path
-# ouyput dir
