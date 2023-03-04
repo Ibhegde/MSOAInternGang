@@ -179,12 +179,12 @@ class TrainModel:
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
-                num_train_epochs=10,
+                num_train_epochs=15,
                 fp16=True,
                 save_steps=100,
                 eval_steps=100,
                 logging_steps=10,
-                learning_rate=1e-8,
+                learning_rate=1e-2,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -207,7 +207,7 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="vit-base-aie-3k",
+        output_dir="vit-base-aie-3k-lr1e-2",
         image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_3k/",
     )
     trm = tm.train()
@@ -218,6 +218,7 @@ def train_model(model_name, label_col):
 def main():
     # TODO: take arguments in commandline#
     model_name = "google/vit-base-patch16-224-in21k"
+    is_custom = False
 
     #     trainers = {}
     #     with cfu.ThreadPoolExecutor() as executor:
@@ -237,7 +238,10 @@ def main():
             "************************ label_col: %s *****************************"
             % label_col
         )
-        trm, tstm = train_model(model_name, label_col)
+        train_model_name = model_name
+        if is_custom:
+            train_model_name = os.path.join(model_name, label_col)
+        trm, tstm = train_model(train_model_name, label_col)
         results[label_col] = (trm, tstm)
     for label in results:
         trm, tstm = results[label]
