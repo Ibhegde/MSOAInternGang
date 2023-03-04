@@ -43,7 +43,7 @@ print(len(pred_df))
 label_types = get_label_map()
 for label in label_types:
     tm = TrainModel(
-        model_name=os.path.join("vit-base-aie-15k", label),
+        model_name=os.path.join("vit-base-aie-test", label),
         label_col=label,
         output_dir=None,
         image_dir=None,
