@@ -1,7 +1,2 @@
-image_name,POA_attribution,activity_category,activity_type
-10000_00113332-001_1.JPEG,1,4,2
-10001_00113332-001_1.jpg,1,4,2
-10002_00113332-001_10.jpg,1,4,2
-10003_00113332-001_2.jpg,1,4,2
-10004_00113332-001_3.jpg,1,4,2
-10005_00113332-001_4.jpg,1,4,2
+ref_id,POA_attribution,activity_category,activity_type
+00113332-001,1,3,4

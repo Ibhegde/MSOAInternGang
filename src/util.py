@@ -37,8 +37,8 @@ def get_label_map():
             "NonPartner.com": 0,
             "Member.com": 1,
             "Online Display": 2,
-            "Magazine/Newspaper": 3,
-            "Billboard/Transit": 4,
+            "Magazine-Newspaper": 3,
+            "Billboard-Transit": 4,
             "Collateral": 5,
             "Misc": 6,
             "IndustryPartner.com": 7,
@@ -91,7 +91,11 @@ def sample_images(
 
         print("Waiting to complete copying....")
         for copy_thr in cfu.as_completed(copy_lst):
-            copy_thr.result()
+            try:
+                copy_thr.result()
+            except Exception as e:
+                print(e)
+
         print("Completed copying....")
     return list(copy_lst.values())
 

@@ -68,7 +68,9 @@ def copy_sample_images(
             sample_df = sample_df.explode("image_name")
 
             sample_rec = os.path.join(sample_path, "record.csv")
-            sample_df.to_csv(sample_rec)
+            sample_df["file_name"] = sample_df["image_name"]
+            sample_df["label"] = sample_df[label_type]
+            sample_df[["image", "label"]].to_csv(sample_rec, index=False)
             label_sample_items[label_type] = sample_df
         return label_sample_items
     elif sample_type == "test":
@@ -90,7 +92,9 @@ def copy_sample_images(
 
             sample_df = sample_df.explode("image_name")
             sample_rec = os.path.join(labelled_dest, "record.csv")
-            sample_df.to_csv(sample_rec)
+            sample_df["file_name"] = sample_df["image_name"]
+            sample_df["label"] = sample_df[label_type]
+            sample_df[["image", "label"]].to_csv(sample_rec, index=False)
 
             label_sample_items[label_type] = sample_df
         return label_sample_items
@@ -113,7 +117,7 @@ def main():
     parser.add_argument(
         "--dest-path",
         action="store",
-        default="TRAIN_IMAGES/",
+        default="TRAIN_IMAGES",
         type=str,
         help="TRAIN data destination folder path",
     )
@@ -164,7 +168,11 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
+<<<<<<< HEAD
+        sample_count=10,
+=======
         sample_count=50,
+>>>>>>> d574f56dd09a006c185e6b8351c999f0eebc606d
         sample_type="validation",
     )
 
@@ -172,7 +180,11 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
+<<<<<<< HEAD
+        sample_count=10,
+=======
         sample_count=50,
+>>>>>>> d574f56dd09a006c185e6b8351c999f0eebc606d
         sample_type="test",
     )
 

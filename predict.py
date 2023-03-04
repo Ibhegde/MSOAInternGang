@@ -37,7 +37,7 @@ args = parser.parse_args()
 
 pred_df = pd.read_csv(args.metadata)
 # pred_df = pred_df.loc[pred_df["ref_id"] == "00113332-001"]
-pred_df = pred_df.loc[:5]
+pred_df = pred_df.loc[:3]
 
 print(len(pred_df))
 label_types = get_label_map()
@@ -62,8 +62,8 @@ pred_df = pred_df.groupby("ref_id").agg(
     }
 )
 
-pred_df = pred_df.explode("image_name")
-
+pred_df = pred_df.drop(columns=["image_name"])
+pred_df = pred_df.reset_index()
 # df = max_predict(args.metadata)
 # Get predictions at ref_id level.
 
