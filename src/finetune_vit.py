@@ -253,7 +253,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-# Argparse
-# model path
-# data path
-# ouyput dir
