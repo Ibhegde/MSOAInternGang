@@ -41,7 +41,32 @@ def copy_sample_images(
     sample_count: int,
     sample_type: str = "test",
 ):
-    if sample_type in ["train", "validation"]:
+    if sample_type == "test" or sample_count is None:
+        # Random copy
+        label_sample_items = {}
+        for label_type in get_label_map().keys():
+            labelled_dest = os.path.join(*[dest_path, label_type, sample_type])
+            sample_list = sample_images(
+                grp_src_df=grp_src_df,
+                src_path=src_path,
+                dest_path=labelled_dest,
+                sample_count=sample_count,
+                category_col=label_type,
+                max_image_count=20,
+            )
+            sample_refs = [ref_id for ref_id, img_lst in sample_list]
+            sample_df = grp_src_df.loc[sample_refs][["image_name", label_type]]
+            sample_df.reset_index()
+
+            sample_df = sample_df.explode("image_name")
+            sample_rec = os.path.join(labelled_dest, "record.csv")
+            sample_df["file_name"] = sample_df["image_name"]
+            sample_df["label"] = sample_df[label_type]
+            sample_df[["file_name", "label"]].to_csv(sample_rec, index=False)
+
+            label_sample_items[label_type] = sample_df
+        return label_sample_items
+    elif sample_type in ["train", "validation"]:
         # Uniformy copy
         label_sample_items = {}
         for label_type, label_vals in get_label_map().items():
@@ -71,31 +96,6 @@ def copy_sample_images(
             sample_df["file_name"] = sample_df["image_name"]
             sample_df["label"] = sample_df[label_type]
             sample_df[["file_name", "label"]].to_csv(sample_rec, index=False)
-            label_sample_items[label_type] = sample_df
-        return label_sample_items
-    elif sample_type == "test":
-        # Random copy
-        label_sample_items = {}
-        for label_type in get_label_map().keys():
-            labelled_dest = os.path.join(*[dest_path, label_type, sample_type])
-            sample_list = sample_images(
-                grp_src_df=grp_src_df,
-                src_path=src_path,
-                dest_path=labelled_dest,
-                sample_count=sample_count,
-                category_col=label_type,
-                max_image_count=20,
-            )
-            sample_refs = [ref_id for ref_id, img_lst in sample_list]
-            sample_df = grp_src_df.loc[sample_refs][["image_name", label_type]]
-            sample_df.reset_index()
-
-            sample_df = sample_df.explode("image_name")
-            sample_rec = os.path.join(labelled_dest, "record.csv")
-            sample_df["file_name"] = sample_df["image_name"]
-            sample_df["label"] = sample_df[label_type]
-            sample_df[["file_name", "label"]].to_csv(sample_rec, index=False)
-
             label_sample_items[label_type] = sample_df
         return label_sample_items
 
@@ -146,7 +146,9 @@ def main():
         shutil.rmtree(dest_path)
     os.makedirs(dest_path, exist_ok=True)
 
-    fetch_count = int(args.ref_count)
+    fetch_count = None
+    if args.ref_count.isnumeric():
+        fetch_count = int(args.ref_count)
 
     # sample_images(
     #     grp_src_df=grp_src_df,

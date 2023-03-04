@@ -65,7 +65,6 @@ def sample_images(
         wait_to_complete (bool, optional): wait till the copy threads complete execution
     """
     copy_lst = {}
-    # grp_src_df = groupped_image_data("data/TRAIN_images_metadata.csv")
     with cfu.ThreadPoolExecutor() as executor:
         if sample_count is None:
             sample_count = len(grp_src_df["image_name"])
