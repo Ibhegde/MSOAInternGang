@@ -31,101 +31,14 @@ from .dataset import AIECVDataSet
 import sys
 
 
-class TrainModel:
-    def compute_metrics(self, eval_pred):
-        predictions, labels = eval_pred
-        predictions = np.argmax(predictions, axis=1)
-        # return accuracy_score(y_true = labels, y_pred = predictions)
-        return {
-            "f1": float(f1_score(y_true=labels, y_pred=predictions, average="weighted"))
-        }
-
-    def collate_fn(self, batch):
-        return {
-            "pixel_values": torch.stack([x["pixel_values"] for x in batch]),
-            "labels": torch.tensor([x["label"] for x in batch]),
-        }
-
-    def train_transform_image(self, image_files):
-        image_files["pixel_values"] = [
-            self.preprocess_train(pi_img.convert("RGB"))
-            for pi_img in image_files["image"]
-        ]
-        return image_files
-
-    def val_transform_image(self, image_files):
-        image_files["pixel_values"] = [
-            self.preprocess_val(pi_img.convert("RGB"))
-            for pi_img in image_files["image"]
-        ]
-        return image_files
-
-    def train(self):
-        if next(self.model.parameters()).is_cuda:
-            print("Running on GPU!!")
-        train_results = self.trainer.train()
-        self.trainer.save_model()
-        self.trainer.log_metrics("train", train_results.metrics)
-        self.trainer.save_metrics("train", train_results.metrics)
-        self.trainer.save_state()
-        return train_results
-
-    def test(self):
-        metrics = self.trainer.evaluate(self.test_ds)
-        self.trainer.log_metrics("eval", metrics)
-        self.trainer.save_metrics("eval", metrics)
-        return metrics
-
-    def predict_batch(self, img_path, img_df):
-        pred_ds = AIECVDataSet(
-            stat_df=img_df, root_dir=img_path, transform=self.preprocess_val
-        )
-        pred_dataloader = pred_ds.get_unlabelled_data()
-        final_pred = []
-
-        for batch_input in pred_dataloader:
-            batch_input = batch_input.to(self.device)
-            outputs = self.model(batch_input)
-            logits = outputs.logits
-            if self.device == "cuda":
-                logits = logits.to("cpu")
-            predicted_class = torch.argmax(logits, -1).numpy()
-            final_pred.extend(predicted_class)
-        # print(final_pred)
-        return final_pred
-
-    def predict(self, img_path):
-        image = Image.open(img_path).convert("RGB")
-        inputs = self.preprocess_val(image)
-        # print(inputs)
-        inputs = inputs.to(self.device)
-
-        outputs = self.model(torch.stack([inputs]))
-        logits = outputs.logits
-        if self.device == "cuda":
-            logits = logits.to("cpu")
-
-        predicted_class_idx = torch.argmax(logits, -1).numpy()[0]
-        return predicted_class_idx
-
-    def __init__(
-        self,
-        model_name: str,
-        label_col: str,
-        image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
-        output_dir: str = "vit-base-aie-test",
-    ) -> None:
-        if len(sys.argv) == 2:
-            print("Using GPUs 1 and 2")
-            os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
-        self.device = "cuda"
-        if not torch.cuda.is_available():
-            self.device = "cpu"
-
-        self.model_name = model_name
+class ProcessImage:
+    def __init__(self, model_name) -> None:
+        # To allow loading large images
+        Image.MAX_IMAGE_PIXELS = None
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
 
         self.feature_ext = ViTImageProcessor.from_pretrained(
-            self.model_name, proxies={"https": "proxy-ir.intel.com:912"}
+            model_name, proxies={"https": "proxy-ir.intel.com:912"}
         )
 
         self.size = self.feature_ext.size["height"]
@@ -150,12 +63,91 @@ class TrainModel:
             ]
         )
 
+
+class TrainModel:
+    def compute_metrics(self, eval_pred):
+        predictions, labels = eval_pred
+        predictions = np.argmax(predictions, axis=1)
+        # return accuracy_score(y_true = labels, y_pred = predictions)
+        return {
+            "f1": float(f1_score(y_true=labels, y_pred=predictions, average="weighted"))
+        }
+
+    def collate_fn(self, batch):
+        return {
+            "pixel_values": torch.stack([x["pixel_values"] for x in batch]),
+            "labels": torch.tensor([x["label"] for x in batch]),
+        }
+
+    def train_transform_image(self, image_files):
+        image_files["pixel_values"] = [
+            self.pi.preprocess_train(pi_img.convert("RGB"))
+            for pi_img in image_files["image"]
+        ]
+        return image_files
+
+    def val_transform_image(self, image_files):
+        image_files["pixel_values"] = [
+            self.pi.preprocess_val(pi_img.convert("RGB"))
+            for pi_img in image_files["image"]
+        ]
+        return image_files
+
+    def train(self):
+        if next(self.model.parameters()).is_cuda:
+            print("Running on GPU!!")
+        train_results = self.trainer.train()
+        self.trainer.save_model()
+        self.trainer.log_metrics("train", train_results.metrics)
+        self.trainer.save_metrics("train", train_results.metrics)
+        self.trainer.save_state()
+        return train_results
+
+    def test(self):
+        metrics = self.trainer.evaluate(self.test_ds)
+        self.trainer.log_metrics("eval", metrics)
+        self.trainer.save_metrics("eval", metrics)
+        return metrics
+
+    def predict_batch(self, pred_ds):
+        pred_ds.set_transform(self.pi.preprocess_val)
+        pred_dataloader = pred_ds.get_unlabelled_data()
+        pred_cl = []
+        pred_wt = []
+
+        for batch_input in pred_dataloader:
+            batch_input = batch_input.to(self.device)
+            outputs = self.model(batch_input)
+            logits = outputs.logits
+            if self.device == "cuda":
+                logits = logits.to("cpu")
+            # predicted_class = torch.argmax(logits, -1).numpy()
+            pred_wtb, pred_clb = torch.max(logits, -1)
+            pred_cl.extend(pred_clb.detach().numpy())
+            pred_wt.extend(pred_wtb.detach().numpy())
+        print(pred_wt)
+        return pred_cl, pred_wt
+
+    def __init__(
+        self,
+        model_name: str,
+        label_col: str,
+        image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
+        output_dir: str = "vit-base-aie-test",
+    ) -> None:
+        if len(sys.argv) == 2:
+            print("Using GPUs 1 and 2")
+            os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
+        self.device = "cuda"
+        if not torch.cuda.is_available():
+            self.device = "cpu"
+
+        self.model_name = model_name
+
+        self.pi = ProcessImage(model_name=model_name)
+
         self.label_col = label_col
         self.labels_lst = get_label_map()[self.label_col]
-
-        # To allow loading large images
-        Image.MAX_IMAGE_PIXELS = None
-        ImageFile.LOAD_TRUNCATED_IMAGES = True
 
         self.model = ViTForImageClassification.from_pretrained(
             self.model_name,
@@ -164,10 +156,6 @@ class TrainModel:
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
         ).to(self.device)
-
-        # freeze params of pretrained model
-        for param in self.model.vit.parameters():
-            param.requires_grad = False
 
         # freeze params of pretrained model
         for param in self.model.vit.parameters():
@@ -211,7 +199,7 @@ class TrainModel:
                 compute_metrics=self.compute_metrics,
                 train_dataset=self.train_ds,
                 eval_dataset=self.val_ds,
-                tokenizer=self.feature_ext,
+                tokenizer=self.pi.feature_ext,
             )
 
 
