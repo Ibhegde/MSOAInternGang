@@ -132,7 +132,7 @@ def main():
     parser.add_argument(
         "--ref-count",
         action="store",
-        default="10",
+        default="all",
         type=str,
         help="Test images metadata file path",
     )
@@ -146,7 +146,7 @@ def main():
         shutil.rmtree(dest_path)
     os.makedirs(dest_path, exist_ok=True)
 
-    fetch_count = None
+    fetch_count = len(grp_src_df.index)
     if args.ref_count.isnumeric():
         fetch_count = int(args.ref_count)
 
