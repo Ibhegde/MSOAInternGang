@@ -67,6 +67,10 @@ def sample_images(
     copy_lst = {}
     grp_src_df = groupped_image_data("data/TRAIN_images_metadata.csv")
     with cfu.ThreadPoolExecutor() as executor:
+        if sample_count is None:
+            sample_count = len(grp_src_df["image_name"])
+
+        sample_count = min(sample_count, len(grp_src_df["image_name"]))
         sample_rows = grp_src_df["image_name"].sample(sample_count)
         labelled_dest = dest_path
         os.makedirs(labelled_dest, exist_ok=True)

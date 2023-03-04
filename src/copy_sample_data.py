@@ -168,11 +168,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-<<<<<<< HEAD
         sample_count=10,
-=======
-        sample_count=50,
->>>>>>> d574f56dd09a006c185e6b8351c999f0eebc606d
         sample_type="validation",
     )
 
@@ -180,11 +176,7 @@ def main():
         grp_src_df=grp_src_df,
         src_path=args.src_path,
         dest_path=args.dest_path,
-<<<<<<< HEAD
         sample_count=10,
-=======
-        sample_count=50,
->>>>>>> d574f56dd09a006c185e6b8351c999f0eebc606d
         sample_type="test",
     )
 
