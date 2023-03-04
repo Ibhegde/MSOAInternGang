@@ -81,6 +81,7 @@ def copy_sample_images(
                     dest_path=labelled_dest,
                     sample_count=label_count,
                     max_image_count=20,
+                    augment_img=True,
                 )
                 label_sample_list.extend(
                     [[ref_id, img_lst, label_val] for ref_id, img_lst in sample_list]

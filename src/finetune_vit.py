@@ -125,7 +125,7 @@ class TrainModel:
             pred_wtb, pred_clb = torch.max(logits, -1)
             pred_cl.extend(pred_clb.detach().numpy())
             pred_wt.extend(pred_wtb.detach().numpy())
-        print(pred_wt)
+        # print(pred_wt)
         return pred_cl, pred_wt
 
     def __init__(
