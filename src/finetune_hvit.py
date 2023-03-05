@@ -225,7 +225,7 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="custom-levit-3k-lr1e-3d15",
+        output_dir="custom-levit-3k-lr1e-3d58",
         image_dir="/mnt/hackathon-data/TRAIN_IMAGES_3k",
     )
     trm = tm.train()
