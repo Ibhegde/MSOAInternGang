@@ -228,7 +228,7 @@ def main():
     trainers = {}
     results = {}
     with cfu.ThreadPoolExecutor() as executor:
-        for label in list(get_label_map().keys())[:1]:
+        for label in list(get_label_map().keys()):
             label_col = label
             print(
                 "************************ label_col: %s *****************************"
