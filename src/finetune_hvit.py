@@ -28,6 +28,7 @@ from transformers import (
 
 from .dataset import AIECVDataSet
 from .util import get_label_map
+from .custom_classifier import SimpleFCs
 
 
 class ProcessImage:
@@ -154,7 +155,12 @@ class TrainModel:
             id2label={v: k for k, v in self.labels_lst.items()},
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
-        ).to(self.device)
+        )
+
+        self.model.classifier = SimpleFCs(
+            hidden_size=self.model.config.hidden_size, num_labels=len(self.labels_lst)
+        )
+        self.model = self.model.to(self.device)
 
         # freeze params of pretrained model
         for param in self.model.vit.parameters():
@@ -178,12 +184,12 @@ class TrainModel:
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
-                num_train_epochs=15,
-                fp16=True,
+                num_train_epochs=10,
+                # fp16=True,
                 save_steps=100,
                 eval_steps=100,
                 logging_steps=10,
-                learning_rate=1e-2,
+                learning_rate=1e-3,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -206,8 +212,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="vit-base-aie-3k-lr1e-2",
-        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_3k/",
+        output_dir="custom-levit",
+        image_dir="TRAIN_IMAGES_50",
     )
     trm = tm.train()
     tstm = tm.test()
@@ -222,7 +228,7 @@ def main():
     trainers = {}
     results = {}
     with cfu.ThreadPoolExecutor() as executor:
-        for label in list(get_label_map().keys()):
+        for label in list(get_label_map().keys())[:1]:
             label_col = label
             print(
                 "************************ label_col: %s *****************************"
@@ -236,19 +242,6 @@ def main():
     for tr_exe in cfu.as_completed(trainers):
         label_col = trainers[tr_exe]
         results[label_col] = tr_exe.result()
-
-    # results = {}
-    # for label in list(get_label_map().keys()):
-    #     label_col = label
-    #     print(
-    #         "************************ label_col: %s *****************************"
-    #         % label_col
-    #     )
-    #     train_model_name = model_name
-    #     if is_custom:
-    #         train_model_name = os.path.join(model_name, label_col)
-    #     trm, tstm = train_model(train_model_name, label_col)
-    #     results[label_col] = (trm, tstm)
 
     for label in results:
         trm, tstm = results[label]

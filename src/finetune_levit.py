@@ -1,21 +1,15 @@
 import concurrent.futures as cfu
 import os
+import sys
 
+import datasets
 import numpy as np
 import pandas as pd
 import torch
-import datasets
 from datasets import load_dataset
 from PIL import Image, ImageFile
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, Dataset
-from transformers import (
-    Trainer,
-    TrainingArguments,
-    LevitFeatureExtractor,
-    LevitForImageClassification,
-)
-
 from torchvision.transforms import (
     CenterCrop,
     Compose,
@@ -25,10 +19,15 @@ from torchvision.transforms import (
     Resize,
     ToTensor,
 )
+from transformers import (
+    LevitFeatureExtractor,
+    LevitForImageClassification,
+    Trainer,
+    TrainingArguments,
+)
 
-from .util import get_label_map
 from .dataset import AIECVDataSet
-import sys
+from .util import get_label_map
 
 
 class ProcessImage:
