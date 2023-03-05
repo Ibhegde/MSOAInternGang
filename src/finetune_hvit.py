@@ -16,6 +16,11 @@ from torchvision.transforms import (
     Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
+    RandomAffine,
+    RandomRotation,
+    RandomPerspective,
+    RandomApply,
+    ColorJitter,
     Resize,
     ToTensor,
 )
@@ -49,7 +54,15 @@ class ProcessImage:
         self.preprocess_train = Compose(
             [
                 RandomResizedCrop(self.size),
-                RandomHorizontalFlip(),
+                RandomApply(
+                    [
+                        RandomHorizontalFlip(),
+                        RandomAffine((30, 120)),
+                        RandomPerspective(),
+                        RandomRotation((30, 120)),
+                        ColorJitter(),
+                    ]
+                ),
                 ToTensor(),
                 self.normalise,
             ]
@@ -242,7 +255,7 @@ def main():
     for tr_exe in cfu.as_completed(trainers):
         label_col = trainers[tr_exe]
         results[label_col] = tr_exe.result()
-        
+
     # results = {}
     # for label in list(get_label_map().keys()):
     #     label_col = label
