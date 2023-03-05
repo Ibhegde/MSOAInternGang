@@ -186,9 +186,9 @@ class TrainModel:
                 evaluation_strategy="steps",
                 num_train_epochs=10,
                 # fp16=True,
-                save_steps=100,
-                eval_steps=100,
-                logging_steps=10,
+                save_steps=200,
+                eval_steps=200,
+                logging_steps=20,
                 learning_rate=1e-3,
                 save_total_limit=2,
                 remove_unused_columns=False,
@@ -212,8 +212,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="custom-levit",
-        image_dir="TRAIN_IMAGES_50",
+        output_dir="custom-levit-3k-lr1e-3d88",
+        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_best",
     )
     trm = tm.train()
     tstm = tm.test()
@@ -225,23 +225,18 @@ def main():
     model_name = "google/vit-base-patch16-224-in21k"
     is_custom = False
 
-    trainers = {}
     results = {}
-    with cfu.ThreadPoolExecutor() as executor:
-        for label in list(get_label_map().keys())[:1]:
-            label_col = label
-            print(
-                "************************ label_col: %s *****************************"
-                % label_col
-            )
-            train_model_name = model_name
-            if is_custom:
-                train_model_name = os.path.join(model_name, label_col)
-            tr_exe = executor.submit(train_model, train_model_name, label_col)
-            trainers[tr_exe] = label_col
-    for tr_exe in cfu.as_completed(trainers):
-        label_col = trainers[tr_exe]
-        results[label_col] = tr_exe.result()
+    for label in list(get_label_map().keys()):
+        label_col = label
+        print(
+            "************************ label_col: %s *****************************"
+            % label_col
+        )
+        train_model_name = model_name
+        if is_custom:
+            train_model_name = os.path.join(model_name, label_col)
+        trm, tstm = train_model(train_model_name, label_col)
+        results[label_col] = (trm, tstm)
 
     for label in results:
         trm, tstm = results[label]

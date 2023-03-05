@@ -12,8 +12,8 @@ class SimpleFCs(torch.nn.Module):
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        x = torch.nn.Dropout(0.2)(x)
+        x = torch.nn.Dropout(0.8)(x)
         x = F.relu(self.fc2(x))
-        x = torch.nn.Dropout(0.2)(x)
+        x = torch.nn.Dropout(0.8)(x)
         x = self.fc3(x)
         return x

@@ -180,10 +180,10 @@ class TrainModel:
                 evaluation_strategy="steps",
                 num_train_epochs=15,
                 fp16=True,
-                save_steps=100,
-                eval_steps=100,
+                save_steps=250,
+                eval_steps=250,
                 logging_steps=10,
-                learning_rate=1e-2,
+                learning_rate=5e-2,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -206,8 +206,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="vit-base-aie-3k-lr1e-2",
-        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_3k/",
+        output_dir="vit-base-aie-5k-lr5e-2",
+        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_5kr/",
     )
     trm = tm.train()
     tstm = tm.test()
