@@ -16,6 +16,11 @@ from torchvision.transforms import (
     Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
+    RandomAffine,
+    RandomRotation,
+    RandomPerspective,
+    RandomApply,
+    ColorJitter,
     Resize,
     ToTensor,
 )
@@ -28,6 +33,7 @@ from transformers import (
 
 from .dataset import AIECVDataSet
 from .util import get_label_map
+from .custom_classifier import SimpleFCs
 
 
 class ProcessImage:
@@ -48,7 +54,15 @@ class ProcessImage:
         self.preprocess_train = Compose(
             [
                 RandomResizedCrop(self.size),
-                RandomHorizontalFlip(),
+                RandomApply(
+                    [
+                        RandomHorizontalFlip(),
+                        RandomAffine((30, 120)),
+                        RandomPerspective(),
+                        RandomRotation((30, 120)),
+                        ColorJitter(),
+                    ]
+                ),
                 ToTensor(),
                 self.normalise,
             ]
@@ -157,6 +171,10 @@ class TrainModel:
             ignore_mismatched_sizes=True,
         ).to(self.device)
 
+        # self.model.classifier = SimpleFCs(
+        #     hidden_size=self.model.config.hidden_sizes, num_labels=len(self.labels_lst)
+        # )
+        # self.model = self.model.to(self.device)
         # freeze params of pretrained model
         for param in self.model.levit.parameters():
             param.requires_grad = False
@@ -208,7 +226,7 @@ def train_model(model_name, label_col):
         model_name=model_name,
         label_col=label_col,
         output_dir="levit-base-aie-5k",
-        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_5kr/",
+        image_dir="TRAIN_IMAGES_50",
     )
     trm = tm.train()
     tstm = tm.test()
