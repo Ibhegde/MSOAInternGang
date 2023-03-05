@@ -38,7 +38,7 @@ args = parser.parse_args()
 
 pred_df = pd.read_csv(args.metadata)
 # pred_df = pred_df.loc[pred_df["ref_id"] == "00113332-001"]
-pred_df = pred_df.loc[:10]
+# pred_df = pred_df.sample(1000)
 
 pred_ds = AIECVDataSet(stat_df=pred_df, root_dir=args.path)
 
