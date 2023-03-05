@@ -16,6 +16,11 @@ from torchvision.transforms import (
     Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
+    RandomAffine,
+    RandomRotation,
+    RandomPerspective,
+    RandomApply,
+    ColorJitter,
     Resize,
     ToTensor,
 )
@@ -49,7 +54,15 @@ class ProcessImage:
         self.preprocess_train = Compose(
             [
                 RandomResizedCrop(self.size),
-                RandomHorizontalFlip(),
+                RandomApply(
+                    [
+                        RandomHorizontalFlip(),
+                        RandomAffine((30, 120)),
+                        RandomPerspective(),
+                        RandomRotation((30, 120)),
+                        ColorJitter(),
+                    ]
+                ),
                 ToTensor(),
                 self.normalise,
             ]
