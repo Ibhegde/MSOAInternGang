@@ -59,18 +59,18 @@ for label in label_types:
     pred_df[label + "_wt"] = pred_wt
 
 
-def lm_max_weighted_class(label):
-    return (
-        lambda el: pred_df.loc[el.index].groupby(label)[label + "_wt"].mean().idxmax()
-    )
+# def lm_max_weighted_class(label):
+#     return (
+#         lambda el: pred_df.loc[el.index].groupby(label)[label + "_wt"].mean().idxmax()
+#     )
 
 
 pred_df = pred_df.groupby("ref_id").agg(
     {
         "image_name": list,
-        "POA_attribution": lm_max_weighted_class("POA_attribution"),
-        "activity_category": lm_max_weighted_class("activity_category"),
-        "activity_type": lm_max_weighted_class("activity_type"),
+        "POA_attribution": np.max,
+        "activity_category": lambda el: max(set(el.tolist()), key=el.tolist().count),
+        "activity_type": lambda el: max(set(el.tolist()), key=el.tolist().count),
     }
 )
 
