@@ -175,6 +175,8 @@ class TrainModel:
         #     hidden_size=self.model.config.hidden_sizes, num_labels=len(self.labels_lst)
         # )
         # self.model = self.model.to(self.device)
+        self.model.config.drop_path_rate = 0.2
+
         # freeze params of pretrained model
         for param in self.model.levit.parameters():
             param.requires_grad = False

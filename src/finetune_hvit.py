@@ -173,6 +173,7 @@ class TrainModel:
         self.model.classifier = SimpleFCs(
             hidden_size=self.model.config.hidden_size, num_labels=len(self.labels_lst)
         )
+        self.model.config.attention_probs_dropout_prob = 0.3
         self.model = self.model.to(self.device)
 
         # freeze params of pretrained model
