@@ -53,6 +53,7 @@ def sample_images(
     sample_count: int,
     category_col: str = None,
     max_image_count: int = 20,
+    augment_img: bool = False,
 ):
     """Give random sameples from the input data groupped by reference id
 
@@ -65,16 +66,19 @@ def sample_images(
         wait_to_complete (bool, optional): wait till the copy threads complete execution
     """
     copy_lst = {}
-    grp_src_df = groupped_image_data("data/TRAIN_images_metadata.csv")
     with cfu.ThreadPoolExecutor() as executor:
         if sample_count is None:
             sample_count = len(grp_src_df["image_name"])
+        if not augment_img:
+            sample_count = min(sample_count, len(grp_src_df["image_name"]))
+            sample_rows = grp_src_df["image_name"].sample(sample_count)
+        else:
+            sample_rows = grp_src_df["image_name"].sample(sample_count, replace=True)
 
-        sample_count = min(sample_count, len(grp_src_df["image_name"]))
-        sample_rows = grp_src_df["image_name"].sample(sample_count)
         labelled_dest = dest_path
         os.makedirs(labelled_dest, exist_ok=True)
 
+        count_map = {}
         for smp_ref, img_lst in sample_rows.items():
             # Add label to the dest path if label is provided
             if category_col is not None:
@@ -85,13 +89,20 @@ def sample_images(
             if max_image_count > 0 and len(img_lst) > max_image_count:
                 img_lst = random.sample(img_lst, k=max_image_count)
             for imgf in img_lst:
+                d_imf = imgf
+                if augment_img:
+                    if imgf in count_map:
+                        count_map[imgf] += 1
+                        d_imf = imgf + "_" + str(count_map[imgf])
+                    else:
+                        count_map[imgf] = 0
                 src_file = os.path.join(src_path, imgf)
-                dst_file = os.path.join(labelled_dest, imgf)
+                dst_file = os.path.join(labelled_dest, d_imf)
                 if os.name == "nt":
                     copy_thr = executor.submit(shutil.copy, src=src_file, dst=dst_file)
                 else:
                     copy_thr = executor.submit(os.symlink, src=src_file, dst=dst_file)
-                copy_lst[copy_thr] = (smp_ref, img_lst)
+                copy_lst[copy_thr] = (smp_ref, d_imf)
 
         print("Waiting to complete copying....")
         for copy_thr in cfu.as_completed(copy_lst):

@@ -1,33 +1,80 @@
 import concurrent.futures as cfu
 import os
+import sys
 
+import datasets
 import numpy as np
 import pandas as pd
 import torch
-import datasets
 from datasets import load_dataset
 from PIL import Image, ImageFile
 from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader, Dataset
-from transformers import (
-    Trainer,
-    TrainingArguments,
-    LevitFeatureExtractor,
-    LevitForImageClassificationWithTeacher,
-)
-
 from torchvision.transforms import (
     CenterCrop,
     Compose,
     Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
+    RandomAffine,
+    RandomRotation,
+    RandomPerspective,
+    RandomApply,
+    ColorJitter,
     Resize,
     ToTensor,
 )
+from transformers import (
+    LevitFeatureExtractor,
+    LevitForImageClassification,
+    Trainer,
+    TrainingArguments,
+)
 
-from .util import get_label_map
 from .dataset import AIECVDataSet
+from .util import get_label_map
+from .custom_classifier import SimpleFCs
+
+
+class ProcessImage:
+    def __init__(self, model_name) -> None:
+        # To allow loading large images
+        Image.MAX_IMAGE_PIXELS = None
+        ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+        self.feature_ext = LevitFeatureExtractor.from_pretrained(
+            model_name, proxies={"https": "proxy-ir.intel.com:912"}
+        )
+
+        self.size = self.feature_ext.crop_size["height"]
+        self.normalise = Normalize(
+            mean=self.feature_ext.image_mean, std=self.feature_ext.image_std
+        )
+
+        self.preprocess_train = Compose(
+            [
+                RandomResizedCrop(self.size),
+                RandomApply(
+                    [
+                        RandomHorizontalFlip(),
+                        RandomAffine((30, 120)),
+                        RandomPerspective(),
+                        RandomRotation((30, 120)),
+                        ColorJitter(),
+                    ]
+                ),
+                ToTensor(),
+                self.normalise,
+            ]
+        )
+        self.preprocess_val = Compose(
+            [
+                Resize(self.size),
+                CenterCrop(self.size),
+                ToTensor(),
+                self.normalise,
+            ]
+        )
 
 
 class TrainModel:
@@ -47,14 +94,14 @@ class TrainModel:
 
     def train_transform_image(self, image_files):
         image_files["pixel_values"] = [
-            self.preprocess_train(pi_img.convert("RGB"))
+            self.pi.preprocess_train(pi_img.convert("RGB"))
             for pi_img in image_files["image"]
         ]
         return image_files
 
     def val_transform_image(self, image_files):
         image_files["pixel_values"] = [
-            self.preprocess_val(pi_img.convert("RGB"))
+            self.pi.preprocess_val(pi_img.convert("RGB"))
             for pi_img in image_files["image"]
         ]
         return image_files
@@ -75,12 +122,11 @@ class TrainModel:
         self.trainer.save_metrics("eval", metrics)
         return metrics
 
-    def predict_batch(self, img_path, img_df):
-        pred_ds = AIECVDataSet(
-            stat_df=img_df, root_dir=img_path, transform=self.preprocess_val
-        )
+    def predict_batch(self, pred_ds):
+        pred_ds.set_transform(self.pi.preprocess_val)
         pred_dataloader = pred_ds.get_unlabelled_data()
-        final_pred = []
+        pred_cl = []
+        pred_wt = []
 
         for batch_input in pred_dataloader:
             batch_input = batch_input.to(self.device)
@@ -88,24 +134,12 @@ class TrainModel:
             logits = outputs.logits
             if self.device == "cuda":
                 logits = logits.to("cpu")
-            predicted_class = torch.argmax(logits, -1).numpy()
-            final_pred.extend(predicted_class)
-        # print(final_pred)
-        return final_pred
-
-    def predict(self, img_path):
-        image = Image.open(img_path).convert("RGB")
-        inputs = self.preprocess_val(image)
-        # print(inputs)
-        inputs = inputs.to(self.device)
-
-        outputs = self.model(torch.stack([inputs]))
-        logits = outputs.logits
-        if self.device == "cuda":
-            logits = logits.to("cpu")
-
-        predicted_class_idx = torch.argmax(logits, -1).numpy()[0]
-        return predicted_class_idx
+            # predicted_class = torch.argmax(logits, -1).numpy()
+            pred_wtb, pred_clb = torch.max(logits, -1)
+            pred_cl.extend(pred_clb.detach().numpy())
+            pred_wt.extend(pred_wtb.detach().numpy())
+        # print(pred_wt)
+        return pred_cl, pred_wt
 
     def __init__(
         self,
@@ -114,53 +148,35 @@ class TrainModel:
         image_dir: str = "/home/jovyan/team3/MSOAInternGang/TRAIN_IMAGES/",
         output_dir: str = "vit-base-aie-test",
     ) -> None:
+        if len(sys.argv) == 2:
+            print("Using GPUs 1 and 2")
+            os.environ["CUDA_VISIBLE_DEVICES"] = "1,2"
         self.device = "cuda"
         if not torch.cuda.is_available():
             self.device = "cpu"
 
         self.model_name = model_name
 
-        self.feature_ext = LevitFeatureExtractor.from_pretrained(
-            self.model_name, proxies={"https": "proxy-ir.intel.com:912"}
-        )
-
-        self.size = self.feature_ext.size["height"]
-        self.normalise = Normalize(
-            mean=self.feature_ext.image_mean, std=self.feature_ext.image_std
-        )
-
-        self.preprocess_train = Compose(
-            [
-                RandomResizedCrop(self.size),
-                RandomHorizontalFlip(),
-                ToTensor(),
-                self.normalise,
-            ]
-        )
-        self.preprocess_val = Compose(
-            [
-                Resize(self.size),
-                CenterCrop(self.size),
-                ToTensor(),
-                self.normalise,
-            ]
-        )
+        self.pi = ProcessImage(model_name=model_name)
 
         self.label_col = label_col
         self.labels_lst = get_label_map()[self.label_col]
 
-        # To allow loading large images
-        Image.MAX_IMAGE_PIXELS = None
-        ImageFile.LOAD_TRUNCATED_IMAGES = True
-
-        self.model = LevitForImageClassificationWithTeacher.from_pretrained(
+        self.model = LevitForImageClassification.from_pretrained(
             self.model_name,
             num_labels=len(self.labels_lst),
             id2label={v: k for k, v in self.labels_lst.items()},
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
+            ignore_mismatched_sizes=True,
         ).to(self.device)
 
+        # self.model.classifier = SimpleFCs(
+        #     hidden_size=self.model.config.hidden_sizes, num_labels=len(self.labels_lst)
+        # )
+        # self.model = self.model.to(self.device)
+        self.model.config.drop_path_rate = 0.2
+        
         # freeze params of pretrained model
         for param in self.model.levit.parameters():
             param.requires_grad = False
@@ -184,11 +200,11 @@ class TrainModel:
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
                 num_train_epochs=10,
-                # fp16=True,
-                save_steps=100,
-                eval_steps=100,
+                fp16=True,
+                save_steps=200,
+                eval_steps=200,
                 logging_steps=10,
-                learning_rate=1e-6,
+                learning_rate=1e-3,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -203,7 +219,7 @@ class TrainModel:
                 compute_metrics=self.compute_metrics,
                 train_dataset=self.train_ds,
                 eval_dataset=self.val_ds,
-                tokenizer=self.feature_ext,
+                tokenizer=self.pi.feature_ext,
             )
 
 
@@ -211,8 +227,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="vit-base-aie-15k",
-        image_dir="TRAIN_IMAGES/",
+        output_dir="levit-base-aie-3k",
+        image_dir="/mnt/hackathon-data/TRAIN_IMAGES_3k",
     )
     trm = tm.train()
     tstm = tm.test()
@@ -222,7 +238,7 @@ def train_model(model_name, label_col):
 def main():
     # TODO: take arguments in commandline#
     model_name = "facebook/levit-128"
-
+    
     #     trainers = {}
     #     with cfu.ThreadPoolExecutor() as executor:
     #         for label in list(get_label_map().keys()):
@@ -237,6 +253,10 @@ def main():
     results = {}
     for label in list(get_label_map().keys()):
         label_col = label
+        print(
+            "************************ label_col: %s *****************************"
+            % label_col
+        )
         trm, tstm = train_model(model_name, label_col)
         results[label_col] = (trm, tstm)
     for label in results:

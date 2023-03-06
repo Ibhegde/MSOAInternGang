@@ -16,6 +16,11 @@ from torchvision.transforms import (
     Normalize,
     RandomHorizontalFlip,
     RandomResizedCrop,
+    RandomAffine,
+    RandomRotation,
+    RandomPerspective,
+    RandomApply,
+    ColorJitter,
     Resize,
     ToTensor,
 )
@@ -28,6 +33,7 @@ from transformers import (
 
 from .dataset import AIECVDataSet
 from .util import get_label_map
+from .custom_classifier import SimpleFCs
 
 
 class ProcessImage:
@@ -48,7 +54,15 @@ class ProcessImage:
         self.preprocess_train = Compose(
             [
                 RandomResizedCrop(self.size),
-                RandomHorizontalFlip(),
+                RandomApply(
+                    [
+                        RandomHorizontalFlip(),
+                        RandomAffine((30, 120)),
+                        RandomPerspective(),
+                        RandomRotation((30, 120)),
+                        ColorJitter(),
+                    ]
+                ),
                 ToTensor(),
                 self.normalise,
             ]
@@ -154,7 +168,13 @@ class TrainModel:
             id2label={v: k for k, v in self.labels_lst.items()},
             label2id=self.labels_lst,
             proxies={"https": "proxy-ir.intel.com:912"},
-        ).to(self.device)
+        )
+
+        self.model.classifier = SimpleFCs(
+            hidden_size=self.model.config.hidden_size, num_labels=len(self.labels_lst)
+        )
+        self.model.config.attention_probs_dropout_prob = 0.3
+        self.model = self.model.to(self.device)
 
         # freeze params of pretrained model
         for param in self.model.vit.parameters():
@@ -178,12 +198,12 @@ class TrainModel:
                 output_dir=self.output_dir,
                 per_device_train_batch_size=32,
                 evaluation_strategy="steps",
-                num_train_epochs=15,
+                num_train_epochs=10,
                 fp16=True,
                 save_steps=250,
                 eval_steps=250,
                 logging_steps=10,
-                learning_rate=5e-2,
+                learning_rate=1e-3,
                 save_total_limit=2,
                 remove_unused_columns=False,
                 push_to_hub=False,
@@ -206,8 +226,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="vit-base-aie-5k-lr5e-2",
-        image_dir="/mnt/hdd/fab_data/aie_hackathon/TRAIN_IMAGES_5kr/",
+        output_dir="custom-levit-3k-lr1e-3d58",
+        image_dir="/mnt/hackathon-data/TRAIN_IMAGES_3k",
     )
     trm = tm.train()
     tstm = tm.test()
@@ -219,36 +239,36 @@ def main():
     model_name = "google/vit-base-patch16-224-in21k"
     is_custom = False
 
-    trainers = {}
-    results = {}
-    with cfu.ThreadPoolExecutor() as executor:
-        for label in list(get_label_map().keys()):
-            label_col = label
-            print(
-                "************************ label_col: %s *****************************"
-                % label_col
-            )
-            train_model_name = model_name
-            if is_custom:
-                train_model_name = os.path.join(model_name, label_col)
-            tr_exe = executor.submit(train_model, train_model_name, label_col)
-            trainers[tr_exe] = label_col
-    for tr_exe in cfu.as_completed(trainers):
-        label_col = trainers[tr_exe]
-        results[label_col] = tr_exe.result()
-
+    # trainers = {}
     # results = {}
-    # for label in list(get_label_map().keys()):
-    #     label_col = label
-    #     print(
-    #         "************************ label_col: %s *****************************"
-    #         % label_col
-    #     )
-    #     train_model_name = model_name
-    #     if is_custom:
-    #         train_model_name = os.path.join(model_name, label_col)
-    #     trm, tstm = train_model(train_model_name, label_col)
-    #     results[label_col] = (trm, tstm)
+    # with cfu.ThreadPoolExecutor() as executor:
+    #     for label in list(get_label_map().keys()):
+    #         label_col = label
+    #         print(
+    #             "************************ label_col: %s *****************************"
+    #             % label_col
+    #         )
+    #         train_model_name = model_name
+    #         if is_custom:
+    #             train_model_name = os.path.join(model_name, label_col)
+    #         tr_exe = executor.submit(train_model, train_model_name, label_col)
+    #         trainers[tr_exe] = label_col
+    # for tr_exe in cfu.as_completed(trainers):
+    #     label_col = trainers[tr_exe]
+    #     results[label_col] = tr_exe.result()
+
+    results = {}
+    for label in list(get_label_map().keys()):
+        label_col = label
+        print(
+            "************************ label_col: %s *****************************"
+            % label_col
+        )
+        train_model_name = model_name
+        if is_custom:
+            train_model_name = os.path.join(model_name, label_col)
+        trm, tstm = train_model(train_model_name, label_col)
+        results[label_col] = (trm, tstm)
 
     for label in results:
         trm, tstm = results[label]

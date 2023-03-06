@@ -2,8 +2,9 @@ import pandas as pd
 import os
 import argparse
 from src.baseline_pred import max_predict
-from src.finetune_vit import TrainModel
+from src.finetune_hvit import TrainModel
 from src.util import get_label_map
+from src.dataset import AIECVDataSet
 import numpy as np
 
 parser = argparse.ArgumentParser(
@@ -37,13 +38,14 @@ args = parser.parse_args()
 
 pred_df = pd.read_csv(args.metadata)
 # pred_df = pred_df.loc[pred_df["ref_id"] == "00113332-001"]
-pred_df = pred_df.loc[:3]
+# pred_df = pred_df.sample(1000)
 
-print(len(pred_df))
+pred_ds = AIECVDataSet(stat_df=pred_df, root_dir=args.path)
+
 label_types = get_label_map()
 for label in label_types:
     tm = TrainModel(
-        model_name=os.path.join("vit-base-aie-test", label),
+        model_name=os.path.join("vit-result", label),
         label_col=label,
         output_dir=None,
         image_dir=None,
@@ -51,7 +53,17 @@ for label in label_types:
     # pred_df[label] = pred_df["image_name"].map(
     #     lambda img: tm.predict(img_path=os.path.join(args.path, img))
     # )
-    pred_df[label] = tm.predict_batch(img_df=pred_df, img_path=args.path)
+    pred_cl, pred_wt = tm.predict_batch(pred_ds=pred_ds)
+
+    pred_df[label] = pred_cl
+    pred_df[label + "_wt"] = pred_wt
+
+
+# def lm_max_weighted_class(label):
+#     return (
+#         lambda el: pred_df.loc[el.index].groupby(label)[label + "_wt"].mean().idxmax()
+#     )
+
 
 pred_df = pred_df.groupby("ref_id").agg(
     {

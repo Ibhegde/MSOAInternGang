@@ -137,4 +137,8 @@ vit-base-AIE-sample/
 core.*
 test-vit-base/
 vit-base-aie*/
-
+vit-result*
+custom-levit*
+predictions*
+nohup.out
+levit-base-aie-*/

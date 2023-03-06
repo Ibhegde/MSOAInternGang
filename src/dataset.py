@@ -35,6 +35,9 @@ class AIECVDataSet(Dataset):
 
         return pixel_vales
 
+    def set_transform(self, transform):
+        self.transform = transform
+
     def collate_fn_ul(self, sample_batch):
         return torch.stack([x for x in sample_batch])
 
