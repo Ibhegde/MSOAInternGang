@@ -258,17 +258,17 @@ def main():
     #     results[label_col] = tr_exe.result()
 
     results = {}
-    # for label in list(get_label_map().keys()):
-    label_col = "activity_category"
-    print(
-        "************************ label_col: %s *****************************"
-        % label_col
-    )
-    train_model_name = model_name
-    if is_custom:
-        train_model_name = os.path.join(model_name, label_col)
-    trm, tstm = train_model(train_model_name, label_col)
-    results[label_col] = (trm, tstm)
+    for label in list(get_label_map().keys()):
+        label_col = label
+        print(
+            "************************ label_col: %s *****************************"
+            % label_col
+        )
+        train_model_name = model_name
+        if is_custom:
+            train_model_name = os.path.join(model_name, label_col)
+        trm, tstm = train_model(train_model_name, label_col)
+        results[label_col] = (trm, tstm)
 
     for label in results:
         trm, tstm = results[label]
