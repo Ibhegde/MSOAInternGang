@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import argparse
 from src.baseline_pred import max_predict
-from src.finetune_vit import TrainModel
+from src.finetune_hvit import TrainModel
 from src.util import get_label_map
 from src.dataset import AIECVDataSet
 import numpy as np
