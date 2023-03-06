@@ -239,36 +239,36 @@ def main():
     model_name = "google/vit-base-patch16-224-in21k"
     is_custom = False
 
-    trainers = {}
-    results = {}
-    with cfu.ThreadPoolExecutor() as executor:
-        for label in list(get_label_map().keys()):
-            label_col = label
-            print(
-                "************************ label_col: %s *****************************"
-                % label_col
-            )
-            train_model_name = model_name
-            if is_custom:
-                train_model_name = os.path.join(model_name, label_col)
-            tr_exe = executor.submit(train_model, train_model_name, label_col)
-            trainers[tr_exe] = label_col
-    for tr_exe in cfu.as_completed(trainers):
-        label_col = trainers[tr_exe]
-        results[label_col] = tr_exe.result()
-
+    # trainers = {}
     # results = {}
+    # with cfu.ThreadPoolExecutor() as executor:
+    #     for label in list(get_label_map().keys()):
+    #         label_col = label
+    #         print(
+    #             "************************ label_col: %s *****************************"
+    #             % label_col
+    #         )
+    #         train_model_name = model_name
+    #         if is_custom:
+    #             train_model_name = os.path.join(model_name, label_col)
+    #         tr_exe = executor.submit(train_model, train_model_name, label_col)
+    #         trainers[tr_exe] = label_col
+    # for tr_exe in cfu.as_completed(trainers):
+    #     label_col = trainers[tr_exe]
+    #     results[label_col] = tr_exe.result()
+
+    results = {}
     # for label in list(get_label_map().keys()):
-    #     label_col = label
-    #     print(
-    #         "************************ label_col: %s *****************************"
-    #         % label_col
-    #     )
-    #     train_model_name = model_name
-    #     if is_custom:
-    #         train_model_name = os.path.join(model_name, label_col)
-    #     trm, tstm = train_model(train_model_name, label_col)
-    #     results[label_col] = (trm, tstm)
+    label_col = "activity_category"
+    print(
+        "************************ label_col: %s *****************************"
+        % label_col
+    )
+    train_model_name = model_name
+    if is_custom:
+        train_model_name = os.path.join(model_name, label_col)
+    trm, tstm = train_model(train_model_name, label_col)
+    results[label_col] = (trm, tstm)
 
     for label in results:
         trm, tstm = results[label]

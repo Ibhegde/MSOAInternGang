@@ -176,7 +176,7 @@ class TrainModel:
         # )
         # self.model = self.model.to(self.device)
         self.model.config.drop_path_rate = 0.2
-
+        
         # freeze params of pretrained model
         for param in self.model.levit.parameters():
             param.requires_grad = False
@@ -227,8 +227,8 @@ def train_model(model_name, label_col):
     tm = TrainModel(
         model_name=model_name,
         label_col=label_col,
-        output_dir="levit-base-aie-5k",
-        image_dir="TRAIN_IMAGES_50",
+        output_dir="levit-base-aie-3k",
+        image_dir="/mnt/hackathon-data/TRAIN_IMAGES_3k",
     )
     trm = tm.train()
     tstm = tm.test()
@@ -238,7 +238,7 @@ def train_model(model_name, label_col):
 def main():
     # TODO: take arguments in commandline#
     model_name = "facebook/levit-128"
-
+    
     #     trainers = {}
     #     with cfu.ThreadPoolExecutor() as executor:
     #         for label in list(get_label_map().keys()):
